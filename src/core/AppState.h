@@ -41,12 +41,15 @@ public:
     void Tick(float deltaSeconds);
 
     std::string PersistencePath() const;
+    std::string SettingsPath() const;
+    void SaveSettings() const;
     void EvaluateChestVisibility();
     void ShowChest();
     void HideChest(bool save);
 
     bool IsChestDisplayed() const {
-        return chestVisible || settings.showChestForConfiguration;
+        if (settings.showChestForConfiguration) return true;
+        return chestVisible;
     }
 
 private:

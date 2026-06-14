@@ -33,6 +33,14 @@ std::string AppState::PersistencePath() const {
     return (std::filesystem::path(dataDir) / ResetPersistence::kFilename).string();
 }
 
+std::string AppState::SettingsPath() const {
+    return (std::filesystem::path(addonDir) / "settings.json").string();
+}
+
+void AppState::SaveSettings() const {
+    settings.Save(SettingsPath());
+}
+
 void AppState::Initialize(AddonAPI_t* apiPtr) {
     api = apiPtr;
     nexusLink = static_cast<NexusLinkData_t*>(api->DataLink_Get(DL_NEXUS_LINK));
@@ -42,7 +50,7 @@ void AppState::Initialize(AddonAPI_t* apiPtr) {
     dataDir = (std::filesystem::path(addonDir) / "happyReset").string();
     std::filesystem::create_directories(dataDir);
 
-    const auto settingsPath = (std::filesystem::path(addonDir) / "settings.json").string();
+    const auto settingsPath = SettingsPath();
     settings.Load(settingsPath);
     persistence.Load(PersistencePath());
 
@@ -59,8 +67,7 @@ void AppState::Initialize(AddonAPI_t* apiPtr) {
 }
 
 void AppState::Shutdown() {
-    const auto settingsPath = (std::filesystem::path(addonDir) / "settings.json").string();
-    settings.Save(settingsPath);
+    SaveSettings();
     persistence.Save(PersistencePath());
     TextureCatalog::Instance().Shutdown();
 }

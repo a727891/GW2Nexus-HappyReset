@@ -76,7 +76,7 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef() {
         def.Signature = -2026061201;
         def.APIVersion = NEXUS_API_VERSION;
         def.Name = hr::kDisplayName;
-        def.Version = {1, 0, 5, 0};
+        def.Version = {1, 0, 6, 0};
         def.Author = "Soeed";
         def.Description = hr::kDescription;
         def.Load = AddonLoad;

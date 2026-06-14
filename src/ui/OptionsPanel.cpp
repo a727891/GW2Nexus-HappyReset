@@ -3,7 +3,6 @@
 #include "core/AppState.h"
 #include "core/Types.h"
 
-#include <filesystem>
 #include <imgui.h>
 
 namespace hr {
@@ -18,18 +17,18 @@ void OptionsPanel::Render(AppState& state) {
 
     ImGui::TextUnformatted("Configuration preview");
     if (ImGui::Checkbox("Show chest for configuration", &state.settings.showChestForConfiguration)) {
-        if (!state.settings.showChestForConfiguration) {
-            state.chestOpen = false;
-            if (!state.chestVisible) {
-                state.EvaluateChestVisibility();
-            }
-        }
+        state.chestOpen = false;
+        state.SaveSettings();
     }
     if (state.settings.showChestForConfiguration) {
         ImGui::TextWrapped(
             "Preview is on: the chest stays visible so you can adjust location and display "
             "options. Clicking the chest opens the Wizard's Vault but does not change daily-reset "
             "progress.");
+    } else if (state.chestVisible) {
+        ImGui::TextWrapped(
+            "The daily-reset chest is still active. Preview only controls the configuration "
+            "overlay.");
     }
 
     ImGui::Spacing();
@@ -42,17 +41,14 @@ void OptionsPanel::Render(AppState& state) {
                      "Inside the minimap - Bottom Left\0Inside the minimap - Bottom Right\0"
                      "Bottom Right of the screen\0")) {
         state.settings.chestLocation = static_cast<ChestPosition>(location);
+        state.SaveSettings();
     }
 
-    ImGui::Checkbox("Wiggle and bounce", &state.settings.wiggleChest);
-    ImGui::Checkbox("Shiny background", &state.settings.shouldShine);
-
-    if (ImGui::Button("Save settings")) {
-        const auto path = (std::filesystem::path(state.addonDir) / "settings.json").string();
-        state.settings.Save(path);
-        if (state.api) {
-            state.api->Log(LOGL_INFO, "NexusHappyReset", "Settings saved.");
-        }
+    if (ImGui::Checkbox("Wiggle and bounce", &state.settings.wiggleChest)) {
+        state.SaveSettings();
+    }
+    if (ImGui::Checkbox("Shiny background", &state.settings.shouldShine)) {
+        state.SaveSettings();
     }
 }
 

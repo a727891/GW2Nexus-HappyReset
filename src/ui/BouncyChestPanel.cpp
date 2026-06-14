@@ -5,7 +5,6 @@
 #include "ui/DrawUtils.h"
 #include "ui/TextureCatalog.h"
 
-#include <cmath>
 #include <imgui.h>
 
 namespace hr {
@@ -13,30 +12,12 @@ namespace hr {
 namespace {
 
 constexpr float kChestSize = 64.0f;
+constexpr float kShineScale = 1.5f;
+constexpr float kShineHalf = kChestSize * kShineScale * 0.5f;
 
-ImVec2 CalcChestScreenPos(const AppState& state,
-                          const ScreenContext& screen,
-                          const ImRectLike& mapBounds) {
-    const float w = kChestSize;
-    const float h = kChestSize;
-
-    switch (state.settings.chestLocation) {
-        case ChestPosition::MinimapTopRight:
-            return {mapBounds.x + mapBounds.w - 20.0f - w, mapBounds.y - h};
-        case ChestPosition::ScreenBottomRight:
-            return {screen.width - w - 20.0f, screen.height - h - 20.0f};
-        case ChestPosition::MinimapInsideTopLeft:
-            return {mapBounds.x, mapBounds.y};
-        case ChestPosition::MinimapInsideTopRight:
-            return {mapBounds.x + mapBounds.w - w, mapBounds.y};
-        case ChestPosition::MinimapInsideBottomLeft:
-            return {mapBounds.x, mapBounds.y + mapBounds.h - h};
-        case ChestPosition::MinimapInsideBottomRight:
-            return {mapBounds.x + mapBounds.w - w, mapBounds.y + mapBounds.h - h};
-        case ChestPosition::MinimapTopLeft:
-        default:
-            return {mapBounds.x, mapBounds.y - h};
-    }
+bool HitTestChest(const ImVec2& pos, const ImVec2& mouse) {
+    return mouse.x >= pos.x && mouse.x <= pos.x + kChestSize && mouse.y >= pos.y &&
+           mouse.y <= pos.y + kChestSize;
 }
 
 }  // namespace
@@ -46,7 +27,7 @@ bool BouncyChestPanel::ShouldShow(const AppState& state,
                                   const NexusLinkData_t* nexus) {
     if (!state.IsChestDisplayed()) return false;
 
-    if (state.previewChestForConfiguration) {
+    if (state.settings.showChestForConfiguration) {
         return nexus != nullptr && nexus->Width > 0 && nexus->Height > 0;
     }
 
@@ -65,33 +46,24 @@ void BouncyChestPanel::Render(AppState& state,
     const auto& textures = TextureCatalog::Instance();
     if (!textures.Ready()) return;
 
-    const ScreenContext screen = BuildScreenContext(mumble, nexus);
-    const ImRectLike mapBounds = MapBounds(screen, state.previewChestForConfiguration);
-    const ImVec2 pos = CalcChestScreenPos(state, screen, mapBounds);
+    const MinimapLayout layout =
+        ComputeMinimapLayout(state.settings.chestLocation, state.settings.showChestForConfiguration,
+                             mumble, nexus);
+    if (!layout.valid) return;
 
-    ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
-    ImGui::SetNextWindowSize({kChestSize, kChestSize}, ImGuiCond_Always);
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, ImVec4(0, 0, 0, 0));
-    ImGui::Begin("##HR_BouncyChest",
-                 nullptr,
-                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoNav |
-                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing |
-                     ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoMove);
+    const ImVec2 pos{layout.chestPos.x, layout.chestPos.y};
+    const ImVec2 center{pos.x + kChestSize * 0.5f, pos.y + kChestSize * 0.5f};
 
-    const ImVec2 cursor = ImGui::GetCursorScreenPos();
-    const ImVec2 center{cursor.x + kChestSize * 0.5f, cursor.y + kChestSize * 0.5f};
-    ImDrawList* draw = ImGui::GetWindowDrawList();
-
-    const bool hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_AllowWhenBlockedByActiveItem);
+    ImDrawList* draw = ImGui::GetForegroundDrawList();
+    const ImVec2 mouse = ImGui::GetIO().MousePos;
+    const bool hovered = HitTestChest(pos, mouse);
     const ImTextureID shine = textures.Shine();
     const ImTextureID chestTex =
         (hovered || state.chestOpen) ? textures.ChestOpened() : textures.ChestClosed();
 
     if (state.settings.shouldShine && shine) {
         const float angle = static_cast<float>(ImGui::GetTime()) * -1.3f;
-        const ImVec2 shineHalf{48.0f, 48.0f};  // 1.5x the 64px chest bounds
-        DrawUtils::DrawRotatedImage(draw, shine, center, shineHalf, angle,
+        DrawUtils::DrawRotatedImage(draw, shine, center, {kShineHalf, kShineHalf}, angle,
                                     IM_COL32(255, 255, 255, 204));
     }
 
@@ -99,25 +71,13 @@ void BouncyChestPanel::Render(AppState& state,
     const float chestAngle = (hovered || state.chestOpen) ? 0.0f : state.chestRotation;
     DrawUtils::DrawRotatedImage(draw, chestTex, center, chestHalf, chestAngle);
 
-    const bool preview = state.previewChestForConfiguration;
-    if (ImGui::InvisibleButton("chest", ImVec2(kChestSize, kChestSize))) {
-        if (!preview) {
-            state.chestOpen = true;
-            if (state.onChestClicked) {
-                state.onChestClicked();
-            }
-        }
-    }
-    if (!preview && ImGui::IsItemClicked(ImGuiMouseButton_Right)) {
+    const bool clicked = ImGui::GetIO().MouseClicked[0] || ImGui::GetIO().MouseClicked[1];
+    if (clicked && hovered) {
         state.chestOpen = true;
         if (state.onChestClicked) {
             state.onChestClicked();
         }
     }
-
-    ImGui::End();
-    ImGui::PopStyleColor();
-    ImGui::PopStyleVar();
 }
 
 }  // namespace hr

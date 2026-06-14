@@ -29,9 +29,6 @@ public:
     ResetPersistence persistence;
     ResetsWatcher resets;
 
-    /// When true, show the chest overlay for tuning location and display options (no reset logic).
-    bool previewChestForConfiguration = false;
-
     bool chestVisible = false;
     bool chestOpen = false;
     float chestRotation = 0.0f;
@@ -49,7 +46,7 @@ public:
     void HideChest(bool save);
 
     bool IsChestDisplayed() const {
-        return chestVisible || previewChestForConfiguration;
+        return chestVisible || settings.showChestForConfiguration;
     }
 
 private:

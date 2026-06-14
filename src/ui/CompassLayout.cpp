@@ -1,46 +1,58 @@
 #include "ui/CompassLayout.h"
 
-#include "core/Types.h"
-
-#include <cmath>
+#include "utils/MumbleIdentity.h"
 
 namespace hr {
 
 namespace {
 
-constexpr int kMinCompassWidth = 170;
-constexpr int kMaxCompassWidth = 362;
-constexpr int kMinCompassHeight = 170;
-constexpr int kMaxCompassHeight = 338;
-constexpr int kMinCompassOffset = 19;
-constexpr int kMaxCompassOffset = 40;
-constexpr int kCompassSeparation = 40;
-constexpr double kBlishScale = 1.0 / 0.897;
+constexpr float kChestSize = 64.0f;
 
-int CompassOffset(int value, int minValue, int maxValue) {
-    if (maxValue <= minValue) return kMinCompassOffset;
-    const double t =
-        (static_cast<double>(value) - minValue) / (static_cast<double>(maxValue - minValue));
-    return static_cast<int>(std::lround(kMinCompassOffset +
-                                        t * (kMaxCompassOffset - kMinCompassOffset)));
-}
-
-float ScaleMap(double mapScale) {
-    if (mapScale <= 0.0) return static_cast<float>(kBlishScale);
-    return static_cast<float>(kBlishScale / mapScale);
+float BottomSeparation(int uisz, float screenScale) {
+    int delta = 37;
+    switch (uisz) {
+        case 0:
+            delta = 33;
+            break;
+        case 2:
+            delta = 41;
+            break;
+        case 3:
+            delta = 45;
+            break;
+        default:
+            delta = 37;
+            break;
+    }
+    return static_cast<float>(delta) * screenScale;
 }
 
 ImRectLike DefaultPreviewMapBounds(const ScreenContext& ctx) {
-    const int offsetWidth = 28;
-    const int offsetHeight = 28;
-    const float compassW = 200.0f;
-    const float compassH = 200.0f;
+    const float compassW = 200.0f * ctx.screenScale;
+    const float compassH = 200.0f * ctx.screenScale;
     ImRectLike rect{};
-    rect.w = compassW + static_cast<float>(offsetWidth);
-    rect.h = compassH + static_cast<float>(offsetHeight);
-    rect.x = ctx.width - compassW - static_cast<float>(offsetWidth);
-    rect.y = ctx.height - compassH - static_cast<float>(offsetHeight) -
-             static_cast<float>(kCompassSeparation);
+    rect.w = compassW;
+    rect.h = compassH;
+    rect.x = ctx.width - compassW;
+    rect.y = ctx.height - compassH - BottomSeparation(ctx.uisz, ctx.screenScale);
+    return rect;
+}
+
+ImRectLike MinimapRect(float screenW,
+                       float screenH,
+                       float compassW,
+                       float compassH,
+                       float separation,
+                       bool compassTopRight) {
+    ImRectLike rect{};
+    rect.w = compassW;
+    rect.h = compassH;
+    rect.x = screenW - compassW;
+    if (compassTopRight) {
+        rect.y = 0.0f;
+    } else {
+        rect.y = screenH - compassH - separation;
+    }
     return rect;
 }
 
@@ -48,26 +60,34 @@ ImRectLike DefaultPreviewMapBounds(const ScreenContext& ctx) {
 
 ScreenContext BuildScreenContext(const Mumble::Data* mumble, const NexusLinkData_t* nexus) {
     ScreenContext ctx;
-    if (nexus) {
+    if (nexus && nexus->Width > 0 && nexus->Height > 0) {
         ctx.width = static_cast<float>(nexus->Width);
         ctx.height = static_cast<float>(nexus->Height);
     }
 
-    if (!mumble || mumble->LinkedMemory.context_len < sizeof(Mumble::Context)) {
+    if (!mumble) {
         return ctx;
     }
 
-    const auto* raw = mumble->LinkedMemory.context;
-    const auto* c = reinterpret_cast<const Mumble::Context*>(raw);
-    ctx.compassWidth = c->compassWidth;
-    ctx.compassHeight = c->compassHeight;
-    ctx.compassRotation = c->compassRotation;
-    ctx.mapScale = c->mapScale > 0.0f ? c->mapScale : 1.0f;
-    ctx.mapOpen = Mumble::IsMapOpen(mumble);
-    ctx.compassTopRight = (c->uiState & 2u) != 0;
-    ctx.compassRotationEnabled = (c->uiState & 4u) != 0;
-    (void)ctx.compassRotationEnabled;
-    (void)ScaleMap(ctx.mapScale);
+    ctx.mumbleTick = mumble->UITick;
+    ctx.uisz = MumbleIdentity::ParseUisz(mumble);
+    ctx.uiScale = MumbleIdentity::ParseUiScale(mumble);
+    if (nexus && nexus->Scaling > 0.01f) {
+        ctx.screenScale = nexus->Scaling;
+    } else {
+        ctx.screenScale = ctx.uiScale;
+    }
+
+    ctx.rawCompassWidth = mumble->Context.Compass.Width;
+    ctx.rawCompassHeight = mumble->Context.Compass.Height;
+    ctx.compassWidth = static_cast<float>(mumble->Context.Compass.Width) * ctx.screenScale;
+    ctx.compassHeight = static_cast<float>(mumble->Context.Compass.Height) * ctx.screenScale;
+    ctx.compassRotation = mumble->Context.Compass.Rotation;
+    ctx.mapScale = mumble->Context.Compass.Scale > 0.0f ? mumble->Context.Compass.Scale : 1.0f;
+    ctx.mapOpen = mumble->Context.IsMapOpen != 0;
+    ctx.compassTopRight = mumble->Context.IsCompassTopRight != 0;
+    ctx.compassRotationEnabled = mumble->Context.IsCompassRotating != 0;
+    ctx.hasMumbleCompass = ctx.rawCompassWidth > 0 && ctx.rawCompassHeight > 0;
     return ctx;
 }
 
@@ -76,38 +96,74 @@ ImRectLike MapBounds(const ScreenContext& ctx) {
 }
 
 ImRectLike MapBounds(const ScreenContext& ctx, bool layoutPreview) {
-    ImRectLike rect{};
-    if (ctx.compassWidth < 1 || ctx.compassHeight < 1) {
-        if (layoutPreview && ctx.width > 0 && ctx.height > 0) {
+    if (ctx.compassWidth < 1.0f || ctx.compassHeight < 1.0f) {
+        if (layoutPreview && ctx.width > 0.0f && ctx.height > 0.0f) {
             return DefaultPreviewMapBounds(ctx);
         }
-        return rect;
+        return {};
     }
 
     if (ctx.mapOpen) {
-        rect.x = 0;
-        rect.y = 0;
-        rect.w = ctx.width;
-        rect.h = ctx.height;
-        return rect;
+        return {0.0f, 0.0f, ctx.width, ctx.height};
     }
 
-    const int offsetWidth =
-        CompassOffset(static_cast<int>(ctx.compassWidth), kMinCompassWidth, kMaxCompassWidth);
-    const int offsetHeight =
-        CompassOffset(static_cast<int>(ctx.compassHeight), kMinCompassHeight, kMaxCompassHeight);
+    return MinimapRect(ctx.width, ctx.height, ctx.compassWidth, ctx.compassHeight,
+                       BottomSeparation(ctx.uisz, ctx.screenScale), ctx.compassTopRight);
+}
 
-    rect.w = static_cast<float>(ctx.compassWidth + offsetWidth);
-    rect.h = static_cast<float>(ctx.compassHeight + offsetHeight);
-    rect.x = ctx.width - static_cast<float>(ctx.compassWidth) -
-             static_cast<float>(offsetWidth);
-    if (ctx.compassTopRight) {
-        rect.y = 0.0f;
-    } else {
-        rect.y = ctx.height - static_cast<float>(ctx.compassHeight) -
-                 static_cast<float>(offsetHeight) - static_cast<float>(kCompassSeparation);
+ScreenPoint ChestScreenPos(ChestPosition location,
+                           const ScreenContext& screen,
+                           const ImRectLike& mapBounds) {
+    const float w = kChestSize;
+    const float h = kChestSize;
+
+    auto aboveTop = [&](float x, float yTop) -> ScreenPoint {
+        return {x, yTop - h};
+    };
+
+    switch (location) {
+        case ChestPosition::MinimapTopRight:
+            return aboveTop(mapBounds.x + mapBounds.w - 20.0f - w, mapBounds.y);
+        case ChestPosition::ScreenBottomRight:
+            return {screen.width - w - 20.0f, screen.height - h - 20.0f};
+        case ChestPosition::MinimapInsideTopLeft:
+            return {mapBounds.x, mapBounds.y};
+        case ChestPosition::MinimapInsideTopRight:
+            return {mapBounds.x + mapBounds.w - w, mapBounds.y};
+        case ChestPosition::MinimapInsideBottomLeft:
+            return {mapBounds.x, mapBounds.y + mapBounds.h - h};
+        case ChestPosition::MinimapInsideBottomRight:
+            return {mapBounds.x + mapBounds.w - w, mapBounds.y + mapBounds.h - h};
+        case ChestPosition::MinimapTopLeft:
+        default:
+            return aboveTop(mapBounds.x, mapBounds.y);
     }
-    return rect;
+}
+
+MinimapLayout ComputeMinimapLayout(ChestPosition location,
+                                   bool layoutPreview,
+                                   const Mumble::Data* mumble,
+                                   const NexusLinkData_t* nexus) {
+    MinimapLayout layout{};
+    if (!nexus || nexus->Width < 1 || nexus->Height < 1) {
+        return layout;
+    }
+
+    const ScreenContext screen = BuildScreenContext(mumble, nexus);
+    layout.rawCompassWidth = screen.rawCompassWidth;
+    layout.rawCompassHeight = screen.rawCompassHeight;
+    layout.mumbleTick = screen.mumbleTick;
+    layout.screenScale = screen.screenScale;
+    layout.fromMumble = screen.hasMumbleCompass;
+
+    layout.mapBounds = MapBounds(screen, layoutPreview);
+    if (layout.mapBounds.w < 1.0f || layout.mapBounds.h < 1.0f) {
+        return layout;
+    }
+
+    layout.chestPos = ChestScreenPos(location, screen, layout.mapBounds);
+    layout.valid = true;
+    return layout;
 }
 
 }  // namespace hr

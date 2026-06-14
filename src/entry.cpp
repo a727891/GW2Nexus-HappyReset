@@ -33,7 +33,9 @@ void AddonLoad(AddonAPI_t* api) {
 
     state.onChestClicked = [&state]() {
         hr::PressWizardsVault(g_api);
-        state.HideChest(true);
+        if (!state.settings.showChestForConfiguration) {
+            state.HideChest(true);
+        }
     };
 
     api->GUI_Register(RT_Render, AddonRender);
@@ -74,7 +76,7 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef() {
         def.Signature = -2026061201;
         def.APIVersion = NEXUS_API_VERSION;
         def.Name = hr::kDisplayName;
-        def.Version = {1, 0, 2, 0};
+        def.Version = {1, 0, 5, 0};
         def.Author = "Soeed";
         def.Description = hr::kDescription;
         def.Load = AddonLoad;

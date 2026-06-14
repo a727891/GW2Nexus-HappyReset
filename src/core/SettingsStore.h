@@ -9,6 +9,7 @@ namespace hr {
 struct SettingsStore {
     bool wiggleChest = true;
     bool shouldShine = true;
+    bool showChestForConfiguration = false;
     ChestPosition chestLocation = ChestPosition::MinimapTopLeft;
 
     void Load(const std::string& filePath);

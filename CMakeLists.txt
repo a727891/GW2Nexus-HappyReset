@@ -68,6 +68,7 @@ set(SRC_FILES
     src/ui/BouncyChestPanel.cpp
     src/ui/OptionsPanel.cpp
     src/utils/GameBindHelper.cpp
+    src/utils/MumbleIdentity.cpp
     ${EMBEDDED_TEXTURES_CPP}
 )
 

@@ -48,6 +48,9 @@ void SettingsStore::Load(const std::string& filePath) {
 
     if (j.contains("wiggleChest")) wiggleChest = j["wiggleChest"].get<bool>();
     if (j.contains("shouldShine")) shouldShine = j["shouldShine"].get<bool>();
+    if (j.contains("showChestForConfiguration")) {
+        showChestForConfiguration = j["showChestForConfiguration"].get<bool>();
+    }
     if (j.contains("chestLocation")) {
         chestLocation = ChestFromString(j["chestLocation"].get<std::string>());
     }
@@ -57,6 +60,7 @@ void SettingsStore::Save(const std::string& filePath) const {
     nlohmann::json j = {
         {"wiggleChest", wiggleChest},
         {"shouldShine", shouldShine},
+        {"showChestForConfiguration", showChestForConfiguration},
         {"chestLocation", ChestToString(chestLocation)},
     };
 

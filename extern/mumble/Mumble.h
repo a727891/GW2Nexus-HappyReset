@@ -1,61 +1,146 @@
 #pragma once
 
-#include <cstdint>
+struct Vector2 {
+    float X;
+    float Y;
+};
+
+struct Vector3 {
+    float X;
+    float Y;
+    float Z;
+};
 
 namespace Mumble {
 
-#pragma pack(push, 1)
-struct Context {
-    unsigned char serverAddress[28];
-    uint32_t mapId;
-    uint32_t mapType;
-    uint32_t shardId;
-    uint32_t instance;
-    uint32_t buildId;
-    uint32_t uiState;
-    uint16_t compassWidth;
-    uint16_t compassHeight;
-    float compassRotation;
-    float playerX;
-    float playerY;
-    float mapCenterX;
-    float mapCenterY;
-    float mapScale;
-    uint32_t processId;
-    uint8_t mountIndex;
+enum class EMapType : unsigned char {
+    AutoRedirect,
+    CharacterCreation,
+    PvP,
+    GvG,
+    Instance,
+    Public,
+    Tournament,
+    Tutorial,
+    UserTournament,
+    WvW_EternalBattlegrounds,
+    WvW_BlueBorderlands,
+    WvW_GreenBorderlands,
+    WvW_RedBorderlands,
+    WVW_FortunesVale,
+    WvW_ObsidianSanctum,
+    WvW_EdgeOfTheMists,
+    Public_Mini,
+    BigBattle,
+    WvW_Lounge
 };
-#pragma pack(pop)
 
-struct LinkedMem {
-    uint32_t uiVersion;
-    uint32_t uiTick;
-    float fAvatarPosition[3];
-    float fAvatarFront[3];
-    float fAvatarTop[3];
-    wchar_t name[256];
-    float fCameraPosition[3];
-    float fCameraFront[3];
-    float fCameraTop[3];
-    wchar_t identity[256];
-    uint32_t context_len;
-    unsigned char context[256];
-    wchar_t description[2048];
+enum class EMountIndex : unsigned char {
+    None,
+    Jackal,
+    Griffon,
+    Springer,
+    Skimmer,
+    Raptor,
+    RollerBeetle,
+    Warclaw,
+    Skyscale,
+    Skiff,
+    SiegeTurtle
+};
+
+enum class EProfession : unsigned char {
+    None,
+    Guardian,
+    Warrior,
+    Engineer,
+    Ranger,
+    Thief,
+    Elementalist,
+    Mesmer,
+    Necromancer,
+    Revenant
+};
+
+enum class ERace : unsigned char {
+    Asura,
+    Charr,
+    Human,
+    Norn,
+    Sylvari
+};
+
+enum class EUIScale : unsigned char {
+    Small,
+    Normal,
+    Large,
+    Larger
+};
+
+struct Identity {
+    char Name[20];
+    EProfession Profession;
+    unsigned Specialization;
+    ERace Race;
+    unsigned MapID;
+    unsigned WorldID;
+    unsigned TeamColorID;
+    bool IsCommander;
+    float FOV;
+    EUIScale UISize;
+};
+
+struct Compass {
+    unsigned short Width;
+    unsigned short Height;
+    float Rotation;
+    Vector2 PlayerPosition;
+    Vector2 Center;
+    float Scale;
+};
+
+struct Context {
+    unsigned char ServerAddress[28];
+    unsigned MapID;
+    EMapType MapType;
+    unsigned ShardID;
+    unsigned InstanceID;
+    unsigned BuildID;
+    unsigned IsMapOpen : 1;
+    unsigned IsCompassTopRight : 1;
+    unsigned IsCompassRotating : 1;
+    unsigned IsGameFocused : 1;
+    unsigned IsCompetitive : 1;
+    unsigned IsTextboxFocused : 1;
+    unsigned IsInCombat : 1;
+    Compass Compass;
+    unsigned ProcessID;
+    EMountIndex MountIndex;
 };
 
 struct Data {
-    LinkedMem LinkedMemory;
+    unsigned UIVersion;
+    unsigned UITick;
+    Vector3 AvatarPosition;
+    Vector3 AvatarFront;
+    Vector3 AvatarTop;
+    wchar_t Name[256];
+    Vector3 CameraPosition;
+    Vector3 CameraFront;
+    Vector3 CameraTop;
+    wchar_t Identity[256];
+    unsigned ContextLength;
+    Context Context;
+    wchar_t Description[2048];
 };
 
 inline bool IsMapOpen(const Data* data) {
-    if (!data) return false;
-    const auto* ctx = reinterpret_cast<const Context*>(data->LinkedMemory.context);
-    return (ctx->uiState & 1u) != 0;
+    return data && data->Context.IsMapOpen;
 }
 
-inline uint32_t GetMapId(const Data* data) {
+inline unsigned GetMapId(const Data* data) {
     if (!data) return 0;
-    const auto* ctx = reinterpret_cast<const Context*>(data->LinkedMemory.context);
-    return ctx->mapId;
+    return data->Context.MapID;
 }
 
 }  // namespace Mumble

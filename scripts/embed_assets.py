@@ -25,8 +25,8 @@ def format_bytes(data: bytes) -> str:
     return "\n".join(lines)
 
 
-def key_black_to_transparent_png(data: bytes, threshold: int = 24) -> bytes:
-    """GW2 shine assets ship with opaque black backgrounds; key them out for ImGui alpha."""
+def prepare_shine_glow_png(data: bytes) -> bytes:
+    """Convert GW2 shine art to white glow with luminance-driven alpha (no black backdrop)."""
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         return data
 
@@ -39,10 +39,20 @@ def key_black_to_transparent_png(data: bytes, threshold: int = 24) -> bytes:
         for y in range(height):
             for x in range(width):
                 r, g, b, a = pixels[x, y]
-                if a == 0:
-                    continue
-                if max(r, g, b) <= threshold:
+                if a < 8:
                     pixels[x, y] = (0, 0, 0, 0)
+                    continue
+                lum = max(r, g, b)
+                glow = max(0, lum - 24)
+                if glow <= 0:
+                    pixels[x, y] = (0, 0, 0, 0)
+                    continue
+                src_alpha = a / 255.0
+                out_alpha = min(255, int(((glow / 231.0) ** 0.8) * src_alpha * 255.0))
+                if out_alpha < 12:
+                    pixels[x, y] = (0, 0, 0, 0)
+                else:
+                    pixels[x, y] = (255, 255, 255, out_alpha)
         out = io.BytesIO()
         image.save(out, format="PNG")
         return out.getvalue()
@@ -53,7 +63,7 @@ def key_black_to_transparent_png(data: bytes, threshold: int = 24) -> bytes:
 def prepare_texture_bytes(path: Path) -> bytes:
     data = path.read_bytes()
     if path.stem == "965696":
-        return key_black_to_transparent_png(data)
+        return prepare_shine_glow_png(data)
     return data
 
 

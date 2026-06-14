@@ -17,18 +17,19 @@ void OptionsPanel::Render(AppState& state) {
     ImGui::Spacing();
 
     ImGui::TextUnformatted("Configuration preview");
-    if (ImGui::Checkbox("Show chest for configuration", &state.previewChestForConfiguration)) {
-        if (!state.previewChestForConfiguration) {
+    if (ImGui::Checkbox("Show chest for configuration", &state.settings.showChestForConfiguration)) {
+        if (!state.settings.showChestForConfiguration) {
             state.chestOpen = false;
             if (!state.chestVisible) {
                 state.EvaluateChestVisibility();
             }
         }
     }
-    if (state.previewChestForConfiguration) {
+    if (state.settings.showChestForConfiguration) {
         ImGui::TextWrapped(
             "Preview is on: the chest stays visible so you can adjust location and display "
-            "options. Clicks do not open the Wizard's Vault or change daily-reset progress.");
+            "options. Clicking the chest opens the Wizard's Vault but does not change daily-reset "
+            "progress.");
     }
 
     ImGui::Spacing();

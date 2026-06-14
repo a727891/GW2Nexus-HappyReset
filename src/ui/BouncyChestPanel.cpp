@@ -12,13 +12,29 @@ namespace hr {
 namespace {
 
 constexpr float kChestSize = 64.0f;
+constexpr float kChestHalf = kChestSize * 0.5f;
 constexpr float kShineScale = 1.5f;
 constexpr float kShineHalf = kChestSize * kShineScale * 0.5f;
+constexpr float kRotatedHalfScale = 1.41421356237f;  // sqrt(2), worst-case rotated square
+constexpr float kClipPad = 2.0f;
 
 constexpr ImGuiWindowFlags kChestWindowFlags =
     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize |
     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
     ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+float OverlayHalfSize(bool drawShine) {
+    float half = kChestHalf;
+    if (drawShine) {
+        half = std::max(half, kShineHalf * kRotatedHalfScale);
+    }
+    return half + kClipPad;
+}
+
+bool HitTestChest(const ImVec2& center, const ImVec2& mouse) {
+    return mouse.x >= center.x - kChestHalf && mouse.x <= center.x + kChestHalf &&
+           mouse.y >= center.y - kChestHalf && mouse.y <= center.y + kChestHalf;
+}
 
 }  // namespace
 
@@ -49,31 +65,36 @@ void BouncyChestPanel::Render(AppState& state,
     if (!layout.valid) return;
 
     const ImVec2 pos{layout.chestPos.x, layout.chestPos.y};
-    const ImVec2 center{pos.x + kChestSize * 0.5f, pos.y + kChestSize * 0.5f};
+    const ImVec2 center{pos.x + kChestHalf, pos.y + kChestHalf};
+    const bool drawShine = state.settings.shouldShine && textures.Shine();
+    const float overlayHalf = OverlayHalfSize(drawShine);
+    const ImVec2 windowPos{center.x - overlayHalf, center.y - overlayHalf};
+    const ImVec2 windowSize{overlayHalf * 2.0f, overlayHalf * 2.0f};
 
-    ImGui::SetNextWindowPos(pos, ImGuiCond_Always);
-    ImGui::SetNextWindowSize({kChestSize, kChestSize}, ImGuiCond_Always);
+    ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always);
+    ImGui::SetNextWindowSize(windowSize, ImGuiCond_Always);
     ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(0, 0, 0, 0));
     ImGui::Begin("##HappyResetChest", nullptr, kChestWindowFlags);
 
     ImDrawList* draw = ImGui::GetWindowDrawList();
+    const ImVec2 mouse = ImGui::GetIO().MousePos;
+    const bool chestHovered = HitTestChest(center, mouse);
     const ImTextureID shine = textures.Shine();
     const ImTextureID chestTex =
-        (ImGui::IsWindowHovered() || state.chestOpen) ? textures.ChestOpened() : textures.ChestClosed();
+        (chestHovered || state.chestOpen) ? textures.ChestOpened() : textures.ChestClosed();
 
-    if (state.settings.shouldShine && shine) {
+    if (drawShine) {
         const float angle = static_cast<float>(ImGui::GetTime()) * -1.3f;
-        DrawUtils::DrawRotatedImage(draw, shine, center, {kShineHalf, kShineHalf}, angle,
-                                    IM_COL32(255, 255, 255, 204));
+        DrawUtils::DrawRotatedImageAdditive(draw, shine, center, {kShineHalf, kShineHalf}, angle,
+                                            IM_COL32(255, 255, 255, 180));
     }
 
-    const ImVec2 chestHalf{kChestSize * 0.5f, kChestSize * 0.5f};
-    const float chestAngle =
-        (ImGui::IsWindowHovered() || state.chestOpen) ? 0.0f : state.chestRotation;
-    DrawUtils::DrawRotatedImage(draw, chestTex, center, chestHalf, chestAngle);
+    const float chestAngle = (chestHovered || state.chestOpen) ? 0.0f : state.chestRotation;
+    DrawUtils::DrawRotatedImage(draw, chestTex, center, {kChestHalf, kChestHalf}, chestAngle);
 
+    ImGui::SetCursorPos({overlayHalf - kChestHalf, overlayHalf - kChestHalf});
     ImGui::InvisibleButton("##hit", {kChestSize, kChestSize});
     const bool clicked = ImGui::IsItemClicked(ImGuiMouseButton_Left) ||
                          ImGui::IsItemClicked(ImGuiMouseButton_Right);

@@ -85,7 +85,7 @@ target_include_directories(NexusHappyReset PRIVATE
     ${CMAKE_BINARY_DIR}/generated
 )
 
-target_link_libraries(NexusHappyReset PRIVATE imgui nlohmann_json::nlohmann_json)
+target_link_libraries(NexusHappyReset PRIVATE imgui nlohmann_json::nlohmann_json d3d11)
 
 target_compile_definitions(NexusHappyReset PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 

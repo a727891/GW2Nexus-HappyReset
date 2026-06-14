@@ -26,7 +26,7 @@ def format_bytes(data: bytes) -> str:
 
 
 def prepare_shine_glow_png(data: bytes) -> bytes:
-    """Convert GW2 shine art to white glow with luminance-driven alpha (no black backdrop)."""
+    """Convert GW2 shine art to a tight white glow (cropped, no dark matte)."""
     if data[:8] != b"\x89PNG\r\n\x1a\n":
         return data
 
@@ -43,16 +43,28 @@ def prepare_shine_glow_png(data: bytes) -> bytes:
                     pixels[x, y] = (0, 0, 0, 0)
                     continue
                 lum = max(r, g, b)
-                glow = max(0, lum - 24)
+                glow = max(0, lum - 16)
                 if glow <= 0:
                     pixels[x, y] = (0, 0, 0, 0)
                     continue
                 src_alpha = a / 255.0
-                out_alpha = min(255, int(((glow / 231.0) ** 0.8) * src_alpha * 255.0))
-                if out_alpha < 12:
+                out_alpha = min(255, int(((glow / 239.0) ** 0.75) * src_alpha * 255.0))
+                if out_alpha < 8:
                     pixels[x, y] = (0, 0, 0, 0)
                 else:
                     pixels[x, y] = (255, 255, 255, out_alpha)
+
+        alpha = image.getchannel("A")
+        bbox = alpha.getbbox()
+        if not bbox:
+            return data
+        pad = 2
+        left = max(0, bbox[0] - pad)
+        top = max(0, bbox[1] - pad)
+        right = min(width, bbox[2] + pad)
+        bottom = min(height, bbox[3] + pad)
+        image = image.crop((left, top, right, bottom))
+
         out = io.BytesIO()
         image.save(out, format="PNG")
         return out.getvalue()

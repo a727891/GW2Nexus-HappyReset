@@ -1,6 +1,7 @@
 #include "ui/OptionsPanel.h"
 
 #include "core/AppState.h"
+#include "core/Branding.h"
 #include "core/Types.h"
 
 #include <imgui.h>
@@ -8,7 +9,7 @@
 namespace hr {
 
 void OptionsPanel::Render(AppState& state) {
-    ImGui::TextUnformatted("Happy Reset");
+    ImGui::TextUnformatted(kDisplayName);
     ImGui::Separator();
     ImGui::TextWrapped(
         "Click the daily chest to open the Wizard's Vault (in-game keybind is used via Nexus "

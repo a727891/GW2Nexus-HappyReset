@@ -1,5 +1,6 @@
 #include "core/AppState.h"
 
+#include "core/Branding.h"
 #include "ui/DrawUtils.h"
 #include "ui/TextureCatalog.h"
 
@@ -46,8 +47,8 @@ void AppState::Initialize(AddonAPI_t* apiPtr) {
     nexusLink = static_cast<NexusLinkData_t*>(api->DataLink_Get(DL_NEXUS_LINK));
     mumbleLink = static_cast<Mumble::Data*>(api->DataLink_Get(DL_MUMBLE_LINK));
 
-    addonDir = api->Paths_GetAddonDirectory("NexusHappyReset");
-    dataDir = (std::filesystem::path(addonDir) / "happyReset").string();
+    addonDir = api->Paths_GetAddonDirectory("HappyReset");
+    dataDir = (std::filesystem::path(addonDir) / "data").string();
     std::filesystem::create_directories(dataDir);
 
     const auto settingsPath = SettingsPath();
@@ -62,7 +63,7 @@ void AppState::Initialize(AddonAPI_t* apiPtr) {
     EvaluateChestVisibility();
 
     if (api) {
-        api->Log(LOGL_INFO, "NexusHappyReset", "Initialized.");
+        api->Log(LOGL_INFO, kLogTag, "Initialized.");
     }
 }
 

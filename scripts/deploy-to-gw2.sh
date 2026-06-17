@@ -4,8 +4,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BUILD_DIR="$ROOT/build"
 DIST_DIR="$ROOT/dist"
-ADDONS_DIR="${GW2_ADDONS_DIR:-/home/soeed/.local/share/Steam/steamapps/common/Guild Wars 2/addons}"
-DLL_NAME="NexusHappyReset.dll"
+ADDONS_DIR="${GW2_ADDONS_DIR:-/home/soeed/steam/steamapps/common/Guild Wars 2/addons}"
+DLL_NAME="HappyReset.dll"
 
 RELEASE_MODE=false
 for arg in "$@"; do

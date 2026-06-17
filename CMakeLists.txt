@@ -94,7 +94,10 @@ if(CMAKE_CXX_COMPILER MATCHES "mingw" OR MINGW)
 endif()
 
 set_target_properties(NexusHappyReset PROPERTIES
-    OUTPUT_NAME "NexusHappyReset"
+    OUTPUT_NAME "HappyReset"
     PREFIX ""
     SUFFIX ".dll"
 )
+
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/GenerateAddonMetadata.cmake)
+configure_addon_metadata(NexusHappyReset "HAPPYRESET-Nexus")

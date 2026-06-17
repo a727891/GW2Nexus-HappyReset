@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate C++ sources that embed Happy Reset PNG assets into the DLL."""
+"""Generate C++ sources that embed HappyReset PNG assets into the DLL."""
 
 from __future__ import annotations
 

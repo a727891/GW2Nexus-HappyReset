@@ -2,7 +2,7 @@
 
 Nexus addon port of [BlishHud-HappyReset](https://github.com/a727891/BlishHud-HappyReset).
 
-Brings back the daily login chest — click it to open the Wizard's Vault after each daily reset.
+Brings back the daily login chest - click it to open the Wizard's Vault after each daily reset.
 
 ## Requirements
 
@@ -13,9 +13,8 @@ Optional: GW2 API key with **account** permission if you use multiple accounts (
 
 ## Installation
 
-Copy `NexusHappyReset.dll` to `<GW2>/addons/` (directly in `addons/`, not a subfolder).
+Copy `HappyReset.dll` to `<GW2>/addons/` (directly in `addons/`, not a subfolder).
 
-Chest and shine textures are **embedded in the DLL** at build time — end users only need the single DLL file.
 
 ## Build
 
@@ -25,7 +24,16 @@ chmod +x scripts/build-release.sh scripts/deploy-to-gw2.sh
 ./scripts/build-release.sh
 ```
 
-Output: `dist/NexusHappyReset.dll` (stripped release export)
+Output: `dist/HappyReset.dll` (stripped release export)
+
+Or configure and build directly:
+
+```bash
+cmake -B build -G Ninja \
+  -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-toolchain.cmake \
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
 
 Local deploy:
 
@@ -33,8 +41,15 @@ Local deploy:
 ./scripts/deploy-to-gw2.sh --release
 ```
 
+## GitHub Actions (main → release build)
+
+Pushes to `main` run `.github/workflows/release.yml`: MinGW release build, workflow
+artifact upload, and GitHub release (see `.github/nexus-release.json`).
+
+See [templates/github-actions/README.md](templates/github-actions/README.md).
+
 ## Settings
 
 In Nexus addon options: chest location, wiggle/bounce, and shine. Clicking the chest opens the Wizard's Vault via the game's seasonal objectives shop bind (same effect as your in-game Wizard's Vault keybind).
 
-Persistence (`happyReset/resets.json`) tracks when you last opened the chest per account.
+Persistence (`HappyReset/data/resets.json`) tracks when you last opened the chest per account.

@@ -1,5 +1,6 @@
 #include "core/AppState.h"
 #include "core/Branding.h"
+#include "Version.h"
 #include "ui/BouncyChestPanel.h"
 #include "ui/OptionsPanel.h"
 #include "utils/GameBindHelper.h"
@@ -21,7 +22,7 @@ void AddonOptions();
 
 void AddonLoad(AddonAPI_t* api) {
     g_api = api;
-    api->Log(LOGL_INFO, "NexusHappyReset", "AddonLoad starting.");
+    api->Log(LOGL_INFO, hr::kLogTag, "AddonLoad starting.");
 
     ImGui::SetCurrentContext(static_cast<ImGuiContext*>(api->ImguiContext));
     ImGui::SetAllocatorFunctions(
@@ -41,7 +42,7 @@ void AddonLoad(AddonAPI_t* api) {
     api->GUI_Register(RT_Render, AddonRender);
     api->GUI_Register(RT_OptionsRender, AddonOptions);
 
-    api->Log(LOGL_INFO, "NexusHappyReset", "Loaded.");
+    api->Log(LOGL_INFO, hr::kLogTag, "Loaded.");
 }
 
 void AddonUnload() {
@@ -49,7 +50,7 @@ void AddonUnload() {
     g_api->GUI_Deregister(AddonRender);
     g_api->GUI_Deregister(AddonOptions);
     hr::AppState::Instance().Shutdown();
-    g_api->Log(LOGL_INFO, "NexusHappyReset", "Unloaded.");
+    g_api->Log(LOGL_INFO, hr::kLogTag, "Unloaded.");
     g_api = nullptr;
 }
 
@@ -73,10 +74,10 @@ extern "C" __declspec(dllexport) AddonDefinition_t* GetAddonDef() {
     static AddonDefinition_t def{};
     static bool initialized = false;
     if (!initialized) {
-        def.Signature = -2026061201;
+        def.Signature = hr::kSignature;
         def.APIVersion = NEXUS_API_VERSION;
         def.Name = hr::kDisplayName;
-        def.Version = {1, 0, 0, 0};
+        def.Version = {V_MAJOR, V_MINOR, V_BUILD, V_REVISION};
         def.Author = "Soeed";
         def.Description = hr::kDescription;
         def.Load = AddonLoad;

@@ -83,14 +83,12 @@ jobs:
       - name: Read publish settings
         id: cfg
         run: |
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
-import json
-from pathlib import Path
-cfg = json.loads(Path(".github/nexus-release.json").read_text(encoding="utf-8"))
-print(f"publish={'true' if cfg.get('publish_release', True) else 'false'}")
-print(f"draft={'true' if cfg.get('draft', False) else 'false'}")
-print(f"prerelease={'true' if cfg.get('prerelease', False) else 'false'}")
-PY
+          PUBLISH=$(python3 -c "import json; c=json.load(open('.github/nexus-release.json')); print('true' if c.get('publish_release', True) else 'false')")
+          DRAFT=$(python3 -c "import json; c=json.load(open('.github/nexus-release.json')); print('true' if c.get('draft', False) else 'false')")
+          PRERELEASE=$(python3 -c "import json; c=json.load(open('.github/nexus-release.json')); print('true' if c.get('prerelease', False) else 'false')")
+          echo "publish=${PUBLISH}" >> "$GITHUB_OUTPUT"
+          echo "draft=${DRAFT}" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${PRERELEASE}" >> "$GITHUB_OUTPUT"
 
       - name: Publish GitHub release
         if: steps.cfg.outputs.publish == 'true'

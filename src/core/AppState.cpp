@@ -64,6 +64,10 @@ void AppState::Initialize(AddonAPI_t* apiPtr) {
 
     if (api) {
         api->Log(LOGL_INFO, kLogTag, "Initialized.");
+        if constexpr (kDebugMinuteResets) {
+            api->Log(LOGL_WARNING, kLogTag,
+                      "Debug mode: daily reset fires every 1 minute (kDebugMinuteResets).");
+        }
     }
 }
 

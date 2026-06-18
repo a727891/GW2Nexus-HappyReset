@@ -1,5 +1,7 @@
 #include "services/ResetsWatcher.h"
 
+#include "core/Branding.h"
+
 #include <ctime>
 
 namespace hr {
@@ -26,6 +28,17 @@ ResetsWatcher::ResetsWatcher() { CalcNextDailyReset(); }
 
 void ResetsWatcher::CalcNextDailyReset() {
     const auto now = NowUtc();
+
+    if constexpr (kDebugMinuteResets) {
+        const auto epoch = now.time_since_epoch();
+        const auto wholeMinutes =
+            std::chrono::duration_cast<std::chrono::minutes>(epoch);
+        nextDailyReset_ =
+            std::chrono::system_clock::time_point(wholeMinutes + std::chrono::minutes(1));
+        lastDailyReset_ = nextDailyReset_ - std::chrono::minutes(1);
+        return;
+    }
+
     const std::time_t tt = std::chrono::system_clock::to_time_t(now);
     std::tm utc{};
 #ifdef _WIN32

@@ -12,4 +12,7 @@ inline constexpr const char* kDescription =
     "Bring back the daily login chest to open the Wizard's Vault.";
 inline constexpr const char* kPatchNotesUrl = "https://github.com/a727891/BlishHud-HappyReset";
 
+// Set true to fire a "daily reset" every minute (for local testing).
+inline constexpr bool kDebugMinuteResets = false;
+
 }  // namespace hr
